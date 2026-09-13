@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  LEADER
+  PENGAWAS
+}
+
+enum ProjectStatus {
+  SOON
+  AKTIF
+  SELESAI
+  TERTUNDA
+  DIBATALKAN
+}
+
+enum AttendanceType {
+  MASUK
+  SELESAI
+}
+
+enum EmploymentType {
+  HARIAN
+  BULANAN
+  PKWT
+  BORONGAN
+}
+
+enum SalaryStatus {
+  DRAFT
+  DIHITUNG
+  DIBAYAR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(PENGAWAS)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  leaderAttendances LeaderAttendance[]
+
+  projects  Project[] @relation("ProjectLeader")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  location    String
+  description String?
+  status      ProjectStatus @default(AKTIF)
+  startDate   DateTime?
+  endDate     DateTime?
+  photoUrl    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  leaderAttendances LeaderAttendance[]
+  equipments Equipment[]
+
+  leaderId    String?
+  leader      User?         @relation("ProjectLeader", fields: [leaderId], references: [id])
+
+  workers     ProjectWorker[]
+  attendances Attendance[]
+}
+
+model Worker {
+  id             String         @id @default(cuid())
+  name           String
+  nik            String?
+  position       String
+  photoUrl       String?
+  phone          String?
+  employmentType EmploymentType @default(HARIAN)
+  dailyRate      Int            @default(0) // tarif per hari (untuk HARIAN / BORONGAN harian)
+  monthlySalary  Int            @default(0) // gaji tetap per bulan (BULANAN / PKWT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  projects    ProjectWorker[]
+  attendances Attendance[]
+  salaries    Salary[]
+  cashAdvances CashAdvance[]
+}
+
+model ProjectWorker {
+  id        String @id @default(cuid())
+  projectId String
+  workerId  String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker  Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workerId])
+}
+
+model Attendance {
+  id          String         @id @default(cuid())
+  type        AttendanceType
+  datetime    DateTime       @default(now())
+  latitude    Float?
+  longitude   Float?
+  address     String?
+  photoUrl    String?
+  lateMinutes Int            @default(0)
+  notes       String?
+
+  projectId String
+  workerId  String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker  Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Salary {
+  id        String       @id @default(cuid())
+  month     Int          // 1-12
+  year      Int
+  baseAmount Int         // gaji pokok (bulanan/PKWT) ATAU hasil hitung harian
+  attendanceDays Int     @default(0)
+  dailyRate Int          @default(0)
+  totalAmount Int        // total yang harus dibayar
+  cashAdvanceTotal Int   @default(0)
+  netAmount Int          // total - kasbon
+  status    SalaryStatus @default(DRAFT)
+  notes     String?
+  paidAt    DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  workerId  String
+  worker    Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, month, year])
+}
+
+model CashAdvance {
+  id        String   @id @default(cuid())
+  amount    Int
+  date      DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+model LeaderAttendance {
+  id        String   @id @default(cuid())
+  datetime  DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+
+  projectId String
+  userId    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, userId, datetime])
+}
+
+model Equipment {
+  id         String   @id @default(cuid())
+  name       String
+  category   String
+  quantity   Int      @default(1)
+  condition  String   @default("BAIK")
+  notes      String?
+  projectId  String
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
