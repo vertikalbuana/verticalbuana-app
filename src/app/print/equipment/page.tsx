@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Item = {
@@ -12,7 +12,7 @@ type Item = {
   notes?: string | null;
 };
 
-export default function EquipmentPrintPage() {
+function EquipmentPrintContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId") || "";
   const [items, setItems] = useState<Item[]>([]);
@@ -29,9 +29,9 @@ export default function EquipmentPrintPage() {
       setProjectName(data?.project?.name || data?.projects?.[0]?.name || "Semua Project");
       setLeaderName(
         data?.project?.leader?.name ||
-        data?.projects?.[0]?.leader?.name ||
-        data?.items?.[0]?.project?.leader?.name ||
-        "-"
+          data?.projects?.[0]?.leader?.name ||
+          data?.items?.[0]?.project?.leader?.name ||
+          "-"
       );
 
       setTimeout(() => window.print(), 400);
@@ -72,5 +72,13 @@ export default function EquipmentPrintPage() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+export default function EquipmentPrintPage() {
+  return (
+    <Suspense fallback={<div className="p-10">Menyiapkan PDF...</div>}>
+      <EquipmentPrintContent />
+    </Suspense>
   );
 }
