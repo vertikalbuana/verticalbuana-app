@@ -17,7 +17,7 @@ export default function Header({ user }: HeaderProps) {
         <h2 className="text-lg font-semibold text-gray-900">
           Selamat datang, {user.name?.split(" ")[0]}
         </h2>
-        <p className="text-sm text-gray-500">Monitoring Proyek Konstruksi</p>
+        <p className="text-sm text-gray-500">Monitoring Proyek ROPE ACCESS </p>
       </div>
 
       <div className="flex items-center gap-4">

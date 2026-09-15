@@ -62,7 +62,7 @@ export default function LoginPage() {
               className="w-14 h-14 rounded-xl object-cover"
             />
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            PT VERTIKAL BUANA
+            PT VERTIKAL BUANA GRUP
           </h1>
           <p className="text-orange-400 text-sm mt-1 font-medium tracking-wider">
             BUILDING HIGHER. BUILDING SAFER.
@@ -174,18 +174,18 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-6">
-            © 2026 PT Vertikal Buana. All rights reserved.
+            © 2025 PT Vertikal Buana. All rights reserved.
           </p>
         </div>
 
         {/* Demo Account Hint */}
         <div className="mt-6 text-center text-sm text-gray-400">
-          <p>Demo Account:</p>
+          <p>PT VERTIKAL BUANA GROUP:</p>
           <p className="text-orange-400/80 mt-1">
-            admin@vertikalbuana.com / admin123
+            Info@vertikalbuana.com 
           </p>
           <p className="text-orange-400/80 mt-1">
-            leader@vertikalbuana.com / leader123
+            vertikalbuana@gmail.com
           </p>
         </div>
       </div>
