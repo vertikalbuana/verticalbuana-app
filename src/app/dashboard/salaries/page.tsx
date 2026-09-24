@@ -6,6 +6,7 @@ type SalaryRow = {
   workerId: string;
   name: string;
   position: string;
+  type?: "LEADER" | "PEKERJA";
   employmentType: string;
   dailyRate: number;
   monthlySalary: number;
@@ -59,15 +60,19 @@ export default function SalariesPage() {
     }
   }, [workerId, data]);
 
+  const selectedPerson = data.find((w) => w.workerId === workerId);
+
   const handleSaveSalary = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!workerId) return;
+    if (!workerId || !selectedPerson) return;
 
     setSavingSalary(true);
-    const res = await fetch(`/api/workers/${workerId}`, {
+    const res = await fetch("/api/salaries", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        id: workerId,
+        type: selectedPerson.type || "PEKERJA",
         employmentType,
         dailyRate: Number(dailyRate || 0),
         monthlySalary: Number(monthlySalary || 0),
@@ -85,8 +90,13 @@ export default function SalariesPage() {
 
   const handleKasbon = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavingKasbon(true);
+    const person = data.find((w) => w.workerId === kasbonWorkerId);
+    if (person?.type === "LEADER") {
+      alert("Kasbon Leader belum tersedia. Pilih pekerja.");
+      return;
+    }
 
+    setSavingKasbon(true);
     const res = await fetch("/api/cash-advances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,7 +106,6 @@ export default function SalariesPage() {
         notes,
       }),
     });
-
     setSavingKasbon(false);
 
     if (res.ok) {
@@ -112,41 +121,35 @@ export default function SalariesPage() {
   const totalKasbon = data.reduce((a, b) => a + b.cashAdvanceTotal, 0);
   const totalBersih = data.reduce((a, b) => a + b.netAmount, 0);
 
+  const leaders = data.filter((w) => w.type === "LEADER");
+  const workers = data.filter((w) => w.type !== "LEADER");
+
   return (
     <div className="space-y-6 text-gray-900">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Data Gaji Pekerja</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Data Gaji</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Hanya Admin yang dapat melihat dan mengelola gaji
+          Hanya Admin yang dapat melihat dan mengelola gaji Leader dan Pekerja
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Total Anggaran Gaji</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">
-            {formatRupiah(totalAnggaran)}
-          </p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatRupiah(totalAnggaran)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Total Kasbon</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">
-            {formatRupiah(totalKasbon)}
-          </p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatRupiah(totalKasbon)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Total Gaji Bersih</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">
-            {formatRupiah(totalBersih)}
-          </p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatRupiah(totalBersih)}</p>
         </div>
       </div>
 
-      <form
-        onSubmit={handleSaveSalary}
-        className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3"
-      >
-        <h2 className="font-semibold text-gray-900">Input Data Gaji Pekerja</h2>
+      <form onSubmit={handleSaveSalary} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+        <h2 className="font-semibold text-gray-900">Input Data Gaji</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <select
             value={workerId}
@@ -154,12 +157,21 @@ export default function SalariesPage() {
             required
             className="border border-gray-300 rounded-xl px-3 py-2.5 text-gray-900 bg-white"
           >
-            <option value="">Pilih pekerja</option>
-            {data.map((w) => (
-              <option key={w.workerId} value={w.workerId}>
-                {w.name}
-              </option>
-            ))}
+            <option value="">Pilih nama</option>
+            <optgroup label="Leader">
+              {leaders.map((w) => (
+                <option key={`L-${w.workerId}`} value={w.workerId}>
+                  {w.name} - Leader
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Pekerja">
+              {workers.map((w) => (
+                <option key={`P-${w.workerId}`} value={w.workerId}>
+                  {w.name} - {w.position}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           <select
@@ -203,11 +215,8 @@ export default function SalariesPage() {
         </div>
       </form>
 
-      <form
-        onSubmit={handleKasbon}
-        className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3"
-      >
-        <h2 className="font-semibold text-gray-900">Tambah Kasbon</h2>
+      <form onSubmit={handleKasbon} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+        <h2 className="font-semibold text-gray-900">Tambah Kasbon Pekerja</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <select
             value={kasbonWorkerId}
@@ -216,8 +225,8 @@ export default function SalariesPage() {
             className="border border-gray-300 rounded-xl px-3 py-2.5 text-gray-900 bg-white"
           >
             <option value="">Pilih pekerja</option>
-            {data.map((w) => (
-              <option key={w.workerId} value={w.workerId}>
+            {workers.map((w) => (
+              <option key={`K-${w.workerId}`} value={w.workerId}>
                 {w.name}
               </option>
             ))}
@@ -255,6 +264,7 @@ export default function SalariesPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Nama</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Tipe</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Jenis</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Tarif</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Hari Absen</th>
@@ -266,22 +276,25 @@ export default function SalariesPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     Memuat data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                    Belum ada data pekerja
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    Belum ada data
                   </td>
                 </tr>
               ) : (
                 data.map((w) => (
-                  <tr key={w.workerId} className="hover:bg-gray-50">
+                  <tr key={`${w.type || "PEKERJA"}-${w.workerId}`} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{w.name}</div>
                       <div className="text-xs text-gray-500">{w.position}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-800">
+                      {w.type === "LEADER" ? "Leader" : "Pekerja"}
                     </td>
                     <td className="px-4 py-3 text-gray-800">{w.employmentType}</td>
                     <td className="px-4 py-3 text-gray-800">
