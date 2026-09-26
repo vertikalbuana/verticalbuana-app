@@ -11,6 +11,25 @@ type Item = {
   createdAt: string;
 };
 
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const max = 800;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.6));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+}
+
 export default function ProjectProgress({
   projectId,
   canEdit,
@@ -34,11 +53,12 @@ export default function ProjectProgress({
     setItems(
       list.map((item: Item) => ({
         ...item,
-        photos: item.photos && item.photos.length > 0
-          ? item.photos
-          : item.photoUrl
-          ? [item.photoUrl]
-          : [],
+        photos:
+          item.photos && item.photos.length > 0
+            ? item.photos
+            : item.photoUrl
+            ? [item.photoUrl]
+            : [],
       }))
     );
   };
@@ -47,16 +67,13 @@ export default function ProjectProgress({
     load();
   }, [projectId]);
 
-  const handlePhotos = (files?: FileList | null) => {
+  const handlePhotos = async (files?: FileList | null) => {
     if (!files || files.length === 0) return;
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = String(reader.result || "");
-        if (result) setPhotos((prev) => [...prev, result]);
-      };
-      reader.readAsDataURL(file);
-    });
+    const next: string[] = [];
+    for (const file of Array.from(files)) {
+      next.push(await compressImage(file));
+    }
+    setPhotos((prev) => [...prev, ...next]);
   };
 
   const resetForm = () => {
