@@ -20,7 +20,6 @@ export default async function DashboardLayout({
     email: session.user.email,
     role: (session.user as any).role || "USER",
   };
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar user={user} />
