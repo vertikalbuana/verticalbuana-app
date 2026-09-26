@@ -9,6 +9,7 @@ import RemoveWorkerButton from "./RemoveWorkerButton";
 import BulkAttendance from "./BulkAttendance";
 import LeaderSelfAttendance from "./LeaderSelfAttendance";
 import ProjectEquipment from "./ProjectEquipment";
+import ProjectProgress from "./ProjectProgress";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -103,8 +104,18 @@ export default async function ProjectDetailPage({ params }: Props) {
                 href={`/dashboard/project/${project.id}/edit`}
                 className="text-sm bg-white border border-gray-300 text-gray-800 px-3 py-1.5 rounded-lg"
               >
+                {isAdmin && (
+  <a
+    href={`/print/project-report?projectId=${project.id}`}
+    target="_blank"
+    className="text-sm bg-gray-900 text-white px-3 py-1.5 rounded-lg"
+  >
+    Unduh Laporan Lengkap
+  </a>
+)}
                 Edit Project
               </Link>
+              
             )}
           </div>
 
@@ -175,7 +186,11 @@ export default async function ProjectDetailPage({ params }: Props) {
         projectId={project.id}
         canEdit={role === "ADMIN" || role === "LEADER"}
       />
-
+<ProjectProgress
+  projectId={project.id}
+  canEdit={role === "ADMIN" || role === "LEADER"}
+  isAdmin={role === "ADMIN"}
+/>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">

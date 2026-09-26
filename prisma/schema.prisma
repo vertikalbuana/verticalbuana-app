@@ -48,6 +48,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   leaderAttendances LeaderAttendance[]
+  
 
   projects  Project[] @relation("ProjectLeader")
 }
@@ -65,6 +66,7 @@ model Project {
   updatedAt   DateTime      @updatedAt
   leaderAttendances LeaderAttendance[]
   equipments Equipment[]
+  progresses WorkProgress[]
 
   leaderId    String?
   leader      User?         @relation("ProjectLeader", fields: [leaderId], references: [id])
@@ -182,6 +184,17 @@ model Equipment {
   createdBy  String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+model WorkProgress {
+  id          String   @id @default(cuid())
+  description String
+  photoUrl    String?
+  projectId   String
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
