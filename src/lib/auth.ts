@@ -12,44 +12,29 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const email = credentials.email.trim().toLowerCase();
 
-        const users = await prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            name: string;
-            email: string;
-            password: string;
-            role: string;
-            visiblePassword: string | null;
-          }>
-        >(
-          `SELECT id, name, email, password, role, "visiblePassword"
-           FROM "User"
-           WHERE lower(email) = $1
-           LIMIT 1`,
-          email
-        );
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        });
 
-        const user = users[0];
         if (!user) return null;
 
-        const hashValid = await bcrypt.compare(credentials.password, user.password);
-        const visibleValid = user.visiblePassword === credentials.password;
+        const plain = (user as any).visiblePassword;
+        const hashOk = user.password
+          ? await bcrypt.compare(credentials.password, user.password)
+          : false;
+        const plainOk = plain && plain === credentials.password;
 
-        if (!hashValid && !visibleValid) {
-          return null;
-        }
+        if (!hashOk && !plainOk) return null;
 
-        if (visibleValid && !hashValid) {
-          const hashed = await bcrypt.hash(credentials.password, 10);
+        if (plainOk && !hashOk) {
+          const newHash = await bcrypt.hash(credentials.password, 10);
           await prisma.user.update({
             where: { id: user.id },
-            data: { password: hashed },
+            data: { password: newHash },
           });
         }
 
@@ -78,11 +63,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
 };

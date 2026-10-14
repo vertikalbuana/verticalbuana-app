@@ -9,12 +9,9 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if ((session.user as any).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Hanya Admin" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -23,11 +20,14 @@ export async function PATCH(
     const worker = await prisma.worker.update({
       where: { id },
       data: {
+        name: body.name,
+        position: body.position,
+        nik: body.nik || null,
+        phone: body.phone || null,
         employmentType: body.employmentType || undefined,
-        dailyRate:
-          body.dailyRate !== undefined ? Number(body.dailyRate) : undefined,
+        dailyRate: body.dailyRate !== undefined && body.dailyRate !== "" ? Number(body.dailyRate) : undefined,
         monthlySalary:
-          body.monthlySalary !== undefined
+          body.monthlySalary !== undefined && body.monthlySalary !== ""
             ? Number(body.monthlySalary)
             : undefined,
       },
@@ -36,39 +36,28 @@ export async function PATCH(
     return NextResponse.json(worker);
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Gagal update data gaji pekerja" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Gagal mengubah data pekerja" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if ((session.user as any).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Hanya Admin" }, { status: 403 });
     }
 
     const { id } = await params;
-
-    await prisma.worker.delete({
-      where: { id },
-    });
-
+    await prisma.attendance.deleteMany({ where: { workerId: id } });
+    await prisma.projectWorker.deleteMany({ where: { workerId: id } });
+    await prisma.worker.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Gagal menghapus pekerja" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Gagal menghapus pekerja" }, { status: 500 });
   }
 }

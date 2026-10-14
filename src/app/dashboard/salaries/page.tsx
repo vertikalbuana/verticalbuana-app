@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ExpensesPanel from "./ExpensesPanel";
 
 type SalaryRow = {
   workerId: string;
@@ -10,6 +11,8 @@ type SalaryRow = {
   employmentType: string;
   dailyRate: number;
   monthlySalary: number;
+  fullDays?: number;
+  halfDays?: number;
   attendanceDays: number;
   cashAdvanceTotal: number;
   totalAmount: number;
@@ -41,9 +44,14 @@ export default function SalariesPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const res = await fetch("/api/salaries");
-    const json = await res.json();
-    setData(Array.isArray(json) ? json : []);
+    try {
+      const res = await fetch("/api/salaries");
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : [];
+      setData(Array.isArray(json) ? json : []);
+    } catch {
+      setData([]);
+    }
     setLoading(false);
   };
 
@@ -91,10 +99,7 @@ export default function SalariesPage() {
   const handleKasbon = async (e: React.FormEvent) => {
     e.preventDefault();
     const person = data.find((w) => w.workerId === kasbonWorkerId);
-    if (person?.type === "LEADER") {
-      alert("Kasbon Leader belum tersedia. Pilih pekerja.");
-      return;
-    }
+    if (!person) return;
 
     setSavingKasbon(true);
     const res = await fetch("/api/cash-advances", {
@@ -102,6 +107,7 @@ export default function SalariesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         workerId: kasbonWorkerId,
+        type: person.type || "PEKERJA",
         amount,
         notes,
       }),
@@ -112,6 +118,7 @@ export default function SalariesPage() {
       setAmount("");
       setNotes("");
       loadData();
+      alert("Kasbon berhasil ditambahkan");
     } else {
       alert("Gagal menambah kasbon");
     }
@@ -216,7 +223,7 @@ export default function SalariesPage() {
       </form>
 
       <form onSubmit={handleKasbon} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Tambah Kasbon Pekerja</h2>
+        <h2 className="font-semibold text-gray-900">Tambah Kasbon Leader / Pekerja</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <select
             value={kasbonWorkerId}
@@ -224,12 +231,21 @@ export default function SalariesPage() {
             required
             className="border border-gray-300 rounded-xl px-3 py-2.5 text-gray-900 bg-white"
           >
-            <option value="">Pilih pekerja</option>
-            {workers.map((w) => (
-              <option key={`K-${w.workerId}`} value={w.workerId}>
-                {w.name}
-              </option>
-            ))}
+            <option value="">Pilih nama</option>
+            <optgroup label="Leader">
+              {leaders.map((w) => (
+                <option key={`KL-${w.workerId}`} value={w.workerId}>
+                  {w.name} - Leader
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Pekerja">
+              {workers.map((w) => (
+                <option key={`KP-${w.workerId}`} value={w.workerId}>
+                  {w.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           <input
@@ -258,6 +274,8 @@ export default function SalariesPage() {
         </div>
       </form>
 
+      <ExpensesPanel />
+
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-gray-900">
@@ -268,6 +286,8 @@ export default function SalariesPage() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Jenis</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Tarif</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Hari Absen</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Penuh</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">1/2 Hari</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Total Gaji</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Kasbon</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Gaji Bersih</th>
@@ -276,13 +296,13 @@ export default function SalariesPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     Memuat data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     Belum ada data
                   </td>
                 </tr>
@@ -303,6 +323,8 @@ export default function SalariesPage() {
                         : formatRupiah(w.monthlySalary)}
                     </td>
                     <td className="px-4 py-3 text-gray-800">{w.attendanceDays} hari</td>
+                    <td className="px-4 py-3 text-gray-800">{w.fullDays || 0}</td>
+                    <td className="px-4 py-3 text-gray-800">{w.halfDays || 0}</td>
                     <td className="px-4 py-3 text-gray-800">{formatRupiah(w.totalAmount)}</td>
                     <td className="px-4 py-3 text-gray-800">{formatRupiah(w.cashAdvanceTotal)}</td>
                     <td className="px-4 py-3 font-semibold text-gray-900">

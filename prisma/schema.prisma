@@ -67,7 +67,7 @@ model Project {
   leaderAttendances LeaderAttendance[]
   equipments Equipment[]
   progresses WorkProgress[]
-
+ 
   leaderId    String?
   leader      User?         @relation("ProjectLeader", fields: [leaderId], references: [id])
 
@@ -115,6 +115,7 @@ model Attendance {
   photoUrl    String?
   lateMinutes Int            @default(0)
   notes       String?
+  halfDay Boolean @default(false)
 
   projectId String
   workerId  String

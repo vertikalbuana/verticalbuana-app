@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import EditWorkerButton from "./EditWorkerButton";
 import DeleteWorkerButton from "./DeleteWorkerButton";
 import AssignWorkerToProject from "./AssignWorkerToProject";
 
@@ -107,7 +108,14 @@ export default async function WorkersPage({
             <tbody className="divide-y divide-gray-100">
               {workers.map((worker) => (
                 <tr key={worker.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium">{worker.name}</td>
+                  <td className="px-5 py-3 font-medium">
+                    <Link
+                      href={`/dashboard/workers/${worker.id}`}
+                      className="text-orange-600 hover:underline"
+                    >
+                      {worker.name}
+                    </Link>
+                  </td>
                   <td className="px-5 py-3">{worker.position}</td>
                   <td className="px-5 py-3 text-gray-600">{worker.nik || "-"}</td>
                   <td className="px-5 py-3">
@@ -129,6 +137,7 @@ export default async function WorkersPage({
                   <td className="px-5 py-3">{worker._count.attendances}</td>
                   {isAdmin && (
                     <td className="px-5 py-3">
+                      <EditWorkerButton worker={worker} />
                       <DeleteWorkerButton id={worker.id} name={worker.name} />
                     </td>
                   )}

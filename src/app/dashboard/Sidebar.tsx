@@ -21,6 +21,7 @@ interface SidebarProps {
 }
 
 const allMenuItems = [
+  { href: "/dashboard/attendance-manual", label: "Absensi Lampau", icon: ClipboardList, roles: ["ADMIN"] },
   {
     href: "/dashboard",
     label: "Dashboard",
