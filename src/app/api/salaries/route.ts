@@ -37,7 +37,9 @@ export async function GET() {
     const workers = await prisma.worker.findMany({
       orderBy: { name: "asc" },
       include: {
-        attendances: { where: { type: "MASUK", datetime: { gte: start, lt: end } } },
+        attendances: {
+          where: { type: "MASUK", datetime: { gte: start, lt: end } },
+        },
         cashAdvances: { where: { date: { gte: start, lt: end } } },
         salaries: { where: { month, year } },
       },

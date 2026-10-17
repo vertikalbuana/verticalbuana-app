@@ -11,6 +11,16 @@ const role = (session?.user as any)?.role;
 const userId = (session?.user as any)?.id;
 const isAdmin = role === "ADMIN";
 
+function isOverdue(endDate?: Date | string | null, status?: string) {
+  if (!endDate) return false;
+  if (status === "SELESAI" || status === "DIBATALKAN") return false;
+  const end = new Date(endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return end < today;
+}
+
 const projects = await prisma.project.findMany({
   where: role === "LEADER" ? { leaderId: userId } : {},
   orderBy: { createdAt: "desc" },
@@ -22,7 +32,7 @@ const projects = await prisma.project.findMany({
 
   return (
     <div className="space-y-6 text-gray-900">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Daftar Project</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -41,7 +51,7 @@ const projects = await prisma.project.findMany({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {projects.map((project) => (
           <div
             key={project.id}
@@ -52,21 +62,26 @@ const projects = await prisma.project.findMany({
                 <h3 className="font-semibold text-gray-900 text-lg leading-tight">
                   {project.name}
                 </h3>
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
-                    project.status === "AKTIF"
-                      ? "bg-green-50 text-green-600"
-                      : project.status === "TERTUNDA"
-                      ? "bg-yellow-50 text-yellow-600"
-                      : project.status === "SELESAI"
-                      ? "bg-blue-50 text-blue-600"
-                      : project.status === "DIBATALKAN"
-                      ? "bg-red-50 text-red-600"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {project.status}
-                </span>
+                {isOverdue(project.endDate, project.status) ? (
+  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+    TERLAMBAT
+  </span>
+) : (
+  <span
+    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+      project.status === "AKTIF"
+        ? "bg-green-50 text-green-700"
+        : project.status === "SELESAI"
+        ? "bg-blue-50 text-blue-700"
+        : project.status === "SOON"
+        ? "bg-yellow-50 text-yellow-700"
+        : "bg-gray-100 text-gray-600"
+    }`}
+  >
+    {project.status}
+  </span>
+)}
+               
               </div>
 
               <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">

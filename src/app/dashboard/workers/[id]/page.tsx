@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import AdminAttendanceActions from "./AdminAttendanceActions";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -11,24 +12,22 @@ interface Props {
 export default async function WorkerAttendancePage({ params }: Props) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-
-  if ((session?.user as any)?.role !== "ADMIN") {
-    notFound();
-  }
+  if ((session?.user as any)?.role !== "ADMIN") notFound();
 
   const worker = await prisma.worker.findUnique({
     where: { id },
     include: {
       attendances: {
-        include: { project: { select: { name: true } } },
+        include: { project: { select: { id: true, name: true } } },
         orderBy: { datetime: "desc" },
+      },
+      projects: {
+        include: { project: { select: { id: true, name: true } } },
       },
     },
   });
 
-  if (!worker) {
-    notFound();
-  }
+  if (!worker) notFound();
 
   return (
     <div className="space-y-6 text-gray-900">
@@ -40,6 +39,14 @@ export default async function WorkerAttendancePage({ params }: Props) {
         <p className="text-sm text-gray-500">{worker.position}</p>
       </div>
 
+      <AdminAttendanceActions
+        workerId={worker.id}
+        projects={worker.projects.map((pw) => ({
+          id: pw.project.id,
+          name: pw.project.name,
+        }))}
+      />
+
       <div className="bg-white rounded-2xl border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
@@ -47,7 +54,9 @@ export default async function WorkerAttendancePage({ params }: Props) {
               <th className="text-left px-4 py-3">Tanggal</th>
               <th className="text-left px-4 py-3">Project</th>
               <th className="text-left px-4 py-3">Tipe</th>
+              <th className="text-left px-4 py-3">Hari</th>
               <th className="text-left px-4 py-3">Catatan</th>
+              <th className="text-left px-4 py-3">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -65,12 +74,15 @@ export default async function WorkerAttendancePage({ params }: Props) {
                 </td>
                 <td className="px-4 py-3">{a.project?.name || "-"}</td>
                 <td className="px-4 py-3">{a.type}</td>
+                <td className="px-4 py-3">{(a as any).halfDay ? "1/2 hari" : "Penuh"}</td>
                 <td className="px-4 py-3">{a.notes || "-"}</td>
+                <td className="px-4 py-3">
+                  <AdminAttendanceActions mode="delete" attendanceId={a.id} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-
         {worker.attendances.length === 0 && (
           <div className="p-8 text-center text-gray-500">Belum ada absensi</div>
         )}

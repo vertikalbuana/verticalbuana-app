@@ -76,10 +76,19 @@ export default async function ProjectDetailPage({ params }: Props) {
                   : project.status === "SOON"
                   ? "bg-blue-50 text-blue-700"
                   : "bg-gray-100 text-gray-600"
+                  
               }`}
             >
               {project.status}
             </span>
+            {project.endDate &&
+  project.status !== "SELESAI" &&
+  project.status !== "DIBATALKAN" &&
+  new Date(project.endDate) < new Date(new Date().setHours(0, 0, 0, 0)) && (
+    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+      TERLAMBAT — melewati deadline
+    </span>
+  )}
             {isAdmin && (
               <Link
                 href={`/dashboard/project/${project.id}/edit`}
