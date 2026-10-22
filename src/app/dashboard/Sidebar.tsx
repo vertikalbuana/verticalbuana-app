@@ -21,7 +21,12 @@ interface SidebarProps {
 }
 
 const allMenuItems = [
-  { href: "/dashboard/attendance-manual", label: "Absensi Lampau", icon: ClipboardList, roles: ["ADMIN"] },
+  {
+    href: "/dashboard/attendance-manual",
+    label: "Absensi Lampau",
+    icon: ClipboardList,
+    roles: ["ADMIN"],
+  },
   {
     href: "/dashboard",
     label: "Dashboard",
@@ -41,11 +46,17 @@ const allMenuItems = [
     roles: ["ADMIN", "LEADER", "PENGAWAS"],
   },
   {
-  href: "/dashboard/attendance",
-  label: "Absensi",
-  icon: ClipboardList,
-  roles: ["ADMIN", "LEADER"],
-},
+    href: "/dashboard/attendance",
+    label: "Absensi",
+    icon: ClipboardList,
+    roles: ["ADMIN", "LEADER"],
+  },
+  {
+    href: "/dashboard/leaders/attendance",
+    label: "Absensi Leader",
+    icon: ClipboardList,
+    roles: ["ADMIN"],
+  },
   {
     href: "/dashboard/salaries",
     label: "Gaji",
@@ -58,14 +69,12 @@ const allMenuItems = [
     icon: ClipboardList,
     roles: ["ADMIN", "LEADER", "PENGAWAS"],
   },
-
   {
-  href: "/dashboard/leaders",
-  label: "Leader",
-  icon: Users,
-  roles: ["ADMIN"],
-},
-  
+    href: "/dashboard/leaders",
+    label: "Leader",
+    icon: Users,
+    roles: ["ADMIN"],
+  },
 ];
 
 export default function Sidebar({ user }: SidebarProps) {

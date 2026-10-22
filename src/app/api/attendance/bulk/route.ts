@@ -19,6 +19,14 @@ function buildDate(date: string) {
   return selected;
 }
 
+function getLateMinutes(datetime: Date) {
+  const jakarta = new Date(datetime.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+  const hours = jakarta.getHours();
+  const minutes = jakarta.getMinutes();
+  if (hours < 9 || (hours === 9 && minutes === 0)) return 0;
+  return (hours - 9) * 60 + minutes;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -36,6 +44,7 @@ export async function POST(req: Request) {
 
     const halfSet = new Set(Array.isArray(halfDayIds) ? halfDayIds : []);
     const datetime = date ? buildDate(date) : jakartaNow();
+    const lateMinutes = getLateMinutes(datetime);
     const start = new Date(datetime);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
@@ -62,13 +71,14 @@ export async function POST(req: Request) {
           type: "MASUK",
           datetime,
           halfDay: isHalfDay,
+          lateMinutes,
           notes: isHalfDay ? "Setengah hari" : "Absensi checklist leader",
         },
       });
       saved++;
     }
 
-    return NextResponse.json({ success: true, saved });
+    return NextResponse.json({ success: true, saved, lateMinutes });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Gagal menyimpan absensi" }, { status: 500 });

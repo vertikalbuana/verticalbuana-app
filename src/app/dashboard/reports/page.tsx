@@ -1,96 +1,38 @@
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 export default async function ReportsPage() {
-  const attendances = await prisma.attendance.findMany({
-    orderBy: { datetime: "desc" },
-    take: 50,
+  const projects = await prisma.project.findMany({
     include: {
-      worker: true,
-      project: true,
+      _count: { select: { workers: true } },
     },
+    orderBy: { name: "asc" },
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Laporan Absensi</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Laporan Kehadiran</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Riwayat absensi pekerja di semua project
+          Ringkasan kehadiran per project (klik untuk detail)
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Waktu</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Pekerja</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Project</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Tipe</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Selfie</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {attendances.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 text-gray-900">
-                    {new Date(item.datetime).toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="font-medium text-gray-900">{item.worker.name}</div>
-                    <div className="text-xs text-gray-500">{item.worker.position}</div>
-                  </td>
-                  <td className="px-5 py-3 text-gray-700">{item.project.name}</td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        item.type === "MASUK"
-                          ? "bg-blue-50 text-blue-600"
-                          : "bg-purple-50 text-purple-600"
-                      }`}
-                    >
-                      {item.type}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    {item.type === "MASUK" ? (
-                      item.lateMinutes > 0 ? (
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-yellow-50 text-yellow-700">
-                          Terlambat {item.lateMinutes} mnt
-                        </span>
-                      ) : (
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-50 text-green-600">
-                          Tepat Waktu
-                        </span>
-                      )
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    {item.photoUrl ? (
-                      <img
-                        src={item.photoUrl}
-                        alt="Selfie"
-                        className="w-10 h-10 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-400">-</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {attendances.length === 0 && (
-          <div className="p-10 text-center text-gray-500">
-            Belum ada data absensi
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <Link
+            key={project.id}
+            href={`/dashboard/reports/${project.id}`}
+            className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-orange-200 transition"
+          >
+            <h3 className="font-semibold text-gray-900">{project.name}</h3>
+            <p className="text-sm text-gray-500 mt-1">{project.location}</p>
+            <div className="mt-4 flex items-center justify-between text-sm">
+              <span className="text-gray-600">{project._count.workers} pekerja</span>
+              <span className="text-orange-500 font-medium">Lihat Laporan →</span>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );

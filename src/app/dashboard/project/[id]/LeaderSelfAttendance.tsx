@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+function isLateNow() {
+  const jakarta = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+  const hours = jakarta.getHours();
+  const minutes = jakarta.getMinutes();
+  return hours > 9 || (hours === 9 && minutes > 0);
+}
+
 export default function LeaderSelfAttendance({
   projectId,
   alreadyPresent,
@@ -15,17 +22,24 @@ export default function LeaderSelfAttendance({
 
   const handleAbsen = async () => {
     setLoading(true);
+    const late = isLateNow();
+
     const res = await fetch("/api/leader-attendance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         projectId,
-        notes: "Leader hadir di lokasi project",
+        notes: late ? "Leader hadir (terlambat)" : "Leader hadir di lokasi project",
       }),
     });
     setLoading(false);
 
     if (res.ok) {
+      if (late) {
+        alert("Absensi berhasil.\nAnda terlambat (batas jam 09:00 WIB).");
+      } else {
+        alert("Absensi berhasil (tepat waktu).");
+      }
       router.refresh();
     } else {
       const data = await res.json();

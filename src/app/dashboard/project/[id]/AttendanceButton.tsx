@@ -12,6 +12,13 @@ interface Props {
   alreadyFinished?: boolean;
 }
 
+function isLateNow() {
+  const jakarta = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+  const hours = jakarta.getHours();
+  const minutes = jakarta.getMinutes();
+  return hours > 9 || (hours === 9 && minutes > 0);
+}
+
 export default function AttendanceButton({
   projectId,
   workerId,
@@ -90,6 +97,8 @@ export default function AttendanceButton({
         }
       }
 
+      const late = type === "MASUK" && isLateNow();
+
       const res = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +109,7 @@ export default function AttendanceButton({
           latitude,
           longitude,
           photo: capturedImage,
+          lateMinutes: late ? 1 : 0,
         }),
       });
 
@@ -113,7 +123,12 @@ export default function AttendanceButton({
         setFinished(true);
       }
 
-      alert("Absensi berhasil");
+      if (type === "MASUK" && late) {
+        alert("Absensi berhasil.\nAnda terlambat (batas jam 09:00 WIB).");
+      } else {
+        alert("Absensi berhasil");
+      }
+
       stopCamera();
       router.refresh();
     } catch (error) {

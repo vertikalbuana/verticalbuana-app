@@ -20,6 +20,16 @@ function countWorkerDays(attendances: Array<{ datetime: Date; halfDay?: boolean 
   return { fullDays, halfDays, attendanceDays: fullDays + halfDays * 0.5 };
 }
 
+function countLeaderDays(rows: Array<{ datetime: Date | string }>) {
+  const dates = new Set<string>();
+  for (const r of rows) {
+    const key = new Date(r.datetime).toISOString().slice(0, 10);
+    dates.add(key);
+  }
+  const days = dates.size;
+  return { fullDays: days, halfDays: 0, attendanceDays: days };
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -86,6 +96,17 @@ export async function GET() {
       leaders = [];
     }
 
+    let leaderAttendances: Array<{ userId: string; datetime: Date }> = [];
+    try {
+      leaderAttendances = await prisma.$queryRawUnsafe(
+        `SELECT "userId", datetime FROM "LeaderAttendance" WHERE datetime >= $1 AND datetime < $2`,
+        start,
+        end
+      );
+    } catch {
+      leaderAttendances = [];
+    }
+
     let leaderKasbons: Array<{ userId: string; amount: number }> = [];
     try {
       leaderKasbons = await prisma.$queryRawUnsafe(
@@ -101,11 +122,18 @@ export async function GET() {
       const employmentType = l.employmentType || "BULANAN";
       const dailyRate = Number(l.dailyRate || 0);
       const monthlySalary = Number(l.monthlySalary || 0);
+
+      const myAtt = leaderAttendances.filter((a) => a.userId === l.id);
+      const days = countLeaderDays(myAtt);
+
       const cashAdvanceTotal = leaderKasbons
         .filter((k) => k.userId === l.id)
         .reduce((a, b) => a + Number(b.amount || 0), 0);
+
       const totalAmount =
-        employmentType === "HARIAN" || employmentType === "BORONGAN" ? dailyRate : monthlySalary;
+        employmentType === "HARIAN" || employmentType === "BORONGAN"
+          ? dailyRate * days.attendanceDays
+          : monthlySalary;
 
       return {
         id: l.id,
@@ -116,9 +144,9 @@ export async function GET() {
         employmentType,
         dailyRate,
         monthlySalary,
-        fullDays: 0,
-        halfDays: 0,
-        attendanceDays: 0,
+        fullDays: days.fullDays,
+        halfDays: days.halfDays,
+        attendanceDays: days.attendanceDays,
         cashAdvanceTotal,
         totalAmount,
         netAmount: totalAmount - cashAdvanceTotal,
