@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
-
+export const revalidate = 60;
 function jakartaNow() {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
 }

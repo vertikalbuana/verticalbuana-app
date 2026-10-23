@@ -1,3 +1,4 @@
+
 import { prisma } from "../../../lib/prisma";
 import Link from "next/link";
 import { Plus, MapPin, Users } from "lucide-react";

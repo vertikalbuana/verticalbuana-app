@@ -6,14 +6,8 @@ export const metadata: Metadata = {
   description: "Monitoring Proyek Rope Access",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="id">
-      <body>{children}</body>
-    </html>
-  );
+import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("/login");
 }

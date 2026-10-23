@@ -37,7 +37,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { projectId, workerIds, halfDayIds, date } = await req.json();
+    const body = await req.json();
+    const { projectId, workerIds, halfDayIds, date } = body;
+
+    console.log("=== BULK ABSENSI ===");
+    console.log("projectId:", projectId);
+    console.log("workerIds:", workerIds);
+    console.log("date:", date);
+
     if (!projectId || !Array.isArray(workerIds) || workerIds.length === 0) {
       return NextResponse.json({ error: "Pilih pekerja dulu" }, { status: 400 });
     }
@@ -45,42 +52,60 @@ export async function POST(req: Request) {
     const halfSet = new Set(Array.isArray(halfDayIds) ? halfDayIds : []);
     const datetime = date ? buildDate(date) : jakartaNow();
     const lateMinutes = getLateMinutes(datetime);
+
+    console.log("datetime yang dipakai:", datetime.toISOString());
+
     const start = new Date(datetime);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
 
     let saved = 0;
+    const errors: string[] = [];
+
     for (const workerId of workerIds) {
-      const exists = await prisma.attendance.findFirst({
-        where: {
+      try {
+        const exists = await prisma.attendance.findFirst({
+          where: {
+            projectId,
+            workerId,
+            type: "MASUK",
+            datetime: { gte: start, lt: end },
+          },
+        });
+
+        if (exists) {
+          console.log("Sudah ada, skip:", workerId);
+          continue;
+        }
+
+        const isHalfDay = halfSet.has(workerId);
+        const id = `att_${Date.now()}_${workerId.slice(-6)}`;
+
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "Attendance" 
+           (id, "projectId", "workerId", type, datetime, "halfDay", "lateMinutes", notes, "createdAt")
+           VALUES ($1, $2, $3, 'MASUK', (NOW() AT TIME ZONE 'Asia/Jakarta'), $4, $5, $6, NOW())`,
+          id,
           projectId,
           workerId,
-          type: "MASUK",
-          datetime: { gte: start, lt: end },
-        },
-      });
-      if (exists) continue;
-
-      const isHalfDay = halfSet.has(workerId);
-
-      await prisma.attendance.create({
-        data: {
-          projectId,
-          workerId,
-          type: "MASUK",
-          datetime,
-          halfDay: isHalfDay,
+          isHalfDay,
           lateMinutes,
-          notes: isHalfDay ? "Setengah hari" : "Absensi checklist leader",
-        },
-      });
-      saved++;
+          isHalfDay ? "Setengah hari" : "Absensi checklist leader"
+        );
+
+        console.log("Berhasil simpan:", id, "worker:", workerId);
+        saved++;
+      } catch (err: any) {
+        console.error("Gagal simpan worker", workerId, err.message);
+        errors.push(`${workerId}: ${err.message}`);
+      }
     }
 
-    return NextResponse.json({ success: true, saved, lateMinutes });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Gagal menyimpan absensi" }, { status: 500 });
+    console.log("Total saved:", saved);
+    return NextResponse.json({ success: true, saved, lateMinutes, errors });
+  } catch (error: any) {
+    console.error("ERROR BULK:", error);
+    return NextResponse.json({ error: error.message || "Gagal menyimpan absensi" }, { status: 500 });
   }
 }
