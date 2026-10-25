@@ -16,26 +16,34 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.trim().toLowerCase();
 
-        const user = await prisma.user.findFirst({
-          where: { email: { equals: email, mode: "insensitive" } },
-        });
+        const users = await prisma.$queryRawUnsafe(
+          `SELECT id, name, email, password, role, "visiblePassword" FROM "User" WHERE LOWER(email) = $1 LIMIT 1`,
+          email
+        ) as any[];
 
+        const user = users[0];
         if (!user) return null;
 
-        const plain = (user as any).visiblePassword;
-        const hashOk = user.password
-          ? await bcrypt.compare(credentials.password, user.password)
-          : false;
-        const plainOk = plain && plain === credentials.password;
+        const plain = user.visiblePassword;
+        let hashOk = false;
+        try {
+          if (user.password) {
+            hashOk = await bcrypt.compare(credentials.password, user.password);
+          }
+        } catch {
+          hashOk = false;
+        }
+        const plainOk = plain && String(plain).trim() === credentials.password;
 
         if (!hashOk && !plainOk) return null;
 
         if (plainOk && !hashOk) {
           const newHash = await bcrypt.hash(credentials.password, 10);
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { password: newHash },
-          });
+          await prisma.$executeRawUnsafe(
+            `UPDATE "User" SET password = $1 WHERE id = $2`,
+            newHash,
+            user.id
+          );
         }
 
         return {

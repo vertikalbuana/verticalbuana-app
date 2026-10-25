@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
+
 export const revalidate = 60;
-function jakartaNow() {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+
+function jakartaNow(): Date {
+  const wibString = new Date().toLocaleString("sv-SE", {
+    timeZone: "Asia/Jakarta",
+  });
+  return new Date(wibString + "Z");
 }
 
 function getLateMinutes(datetime: Date) {
-  const jakarta = new Date(datetime.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-  const hours = jakarta.getHours();
-  const minutes = jakarta.getMinutes();
+  const hours = datetime.getUTCHours();
+  const minutes = datetime.getUTCMinutes();
+
   if (hours < 9 || (hours === 9 && minutes === 0)) return 0;
   return (hours - 9) * 60 + minutes;
 }
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
       lateMinutes = getLateMinutes(now);
 
       const todayStart = new Date(now);
-      todayStart.setHours(0, 0, 0, 0);
+      todayStart.setUTCHours(0, 0, 0, 0);
 
       const alreadyMasuk = await prisma.attendance.findFirst({
         where: {

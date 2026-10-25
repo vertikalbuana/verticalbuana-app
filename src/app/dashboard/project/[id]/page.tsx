@@ -10,6 +10,7 @@ import LeaderSelfAttendance from "./LeaderSelfAttendance";
 import ProjectEquipment from "./ProjectEquipment";
 import ProjectProgress from "./ProjectProgress";
 import ProjectExpenseForm from "./ProjectExpenseForm";
+import AttendanceButton from "./AttendanceButton";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -40,11 +41,15 @@ export default async function ProjectDetailPage({ params }: Props) {
     where: {
       projectId: id,
       datetime: { gte: today },
-      type: "MASUK",
     },
   });
 
-  const masukMap = new Map(todayAttendances.map((a) => [a.workerId, a]));
+  const masukMap = new Map(
+    todayAttendances.filter((a) => a.type === "MASUK").map((a) => [a.workerId, a])
+  );
+  const selesaiSet = new Set(
+    todayAttendances.filter((a) => a.type === "SELESAI").map((a) => a.workerId)
+  );
 
   const leaderRows = currentUserId
     ? await prisma.$queryRaw<Array<{ id: string }>>`
@@ -76,19 +81,18 @@ export default async function ProjectDetailPage({ params }: Props) {
                   : project.status === "SOON"
                   ? "bg-blue-50 text-blue-700"
                   : "bg-gray-100 text-gray-600"
-                  
               }`}
             >
               {project.status}
             </span>
             {project.endDate &&
-  project.status !== "SELESAI" &&
-  project.status !== "DIBATALKAN" &&
-  new Date(project.endDate) < new Date(new Date().setHours(0, 0, 0, 0)) && (
-    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700">
-      TERLAMBAT — melewati deadline
-    </span>
-  )}
+              project.status !== "SELESAI" &&
+              project.status !== "DIBATALKAN" &&
+              new Date(project.endDate) < new Date(new Date().setHours(0, 0, 0, 0)) && (
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+                  TERLAMBAT — melewati deadline
+                </span>
+              )}
             {isAdmin && (
               <Link
                 href={`/dashboard/project/${project.id}/edit`}
@@ -142,9 +146,10 @@ export default async function ProjectDetailPage({ params }: Props) {
 
       {(role === "LEADER" || role === "ADMIN") && (
         <LeaderSelfAttendance projectId={project.id} alreadyPresent={!!leaderToday} />
-        
       )}
-<ProjectExpenseForm projectId={project.id} projectName={project.name} />
+
+      <ProjectExpenseForm projectId={project.id} projectName={project.name} />
+
       <BulkAttendance
         projectId={project.id}
         workers={project.workers.map((pw) => ({
@@ -180,6 +185,8 @@ export default async function ProjectDetailPage({ params }: Props) {
         <div className="divide-y divide-gray-50">
           {project.workers.map((pw) => {
             const isPresent = masukMap.has(pw.workerId);
+            const isFinished = selesaiSet.has(pw.workerId);
+
             return (
               <div key={pw.id} className="p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -191,14 +198,24 @@ export default async function ProjectDetailPage({ params }: Props) {
                     <p className="text-sm text-gray-500">{pw.worker.position}</p>
                   </div>
                 </div>
+
                 <div className="flex items-center gap-3">
                   <span
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       isPresent ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"
                     }`}
                   >
-                    {isPresent ? "Hadir" : "Belum Absen"}
+                    {isPresent ? (isFinished ? "Selesai" : "Hadir") : "Belum Absen"}
                   </span>
+
+                  <AttendanceButton
+                    projectId={project.id}
+                    workerId={pw.workerId}
+                    workerName={pw.worker.name}
+                    alreadyPresent={isPresent}
+                    alreadyFinished={isFinished}
+                  />
+
                   {isAdmin && (
                     <RemoveWorkerButton
                       projectId={project.id}
@@ -210,6 +227,7 @@ export default async function ProjectDetailPage({ params }: Props) {
               </div>
             );
           })}
+
           {project.workers.length === 0 && (
             <div className="p-8 text-center text-gray-500">Belum ada pekerja di project ini</div>
           )}
@@ -218,4 +236,3 @@ export default async function ProjectDetailPage({ params }: Props) {
     </div>
   );
 }
-
