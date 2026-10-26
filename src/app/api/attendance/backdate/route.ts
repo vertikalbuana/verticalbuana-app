@@ -16,16 +16,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Project, pekerja, dan tanggal wajib diisi" }, { status: 400 });
     }
 
-    const datetime = new Date(`${date}T08:00:00`);
+    // Simpan tepat di tanggal yang dipilih, jam 08:00 WIB
+    const datetime = new Date(`${date}T08:00:00+07:00`);
+
     const start = new Date(datetime);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
 
     const exists = await prisma.attendance.findFirst({
-      where: { projectId, workerId, type: "MASUK", datetime: { gte: start, lt: end } },
+      where: {
+        projectId,
+        workerId,
+        type: "MASUK",
+        datetime: { gte: start, lt: end },
+      },
     });
-    if (exists) return NextResponse.json({ success: true, message: "Sudah ada absensi di tanggal itu" });
+
+    if (exists) {
+      return NextResponse.json({ success: true, message: "Sudah ada absensi di tanggal itu" });
+    }
 
     await prisma.attendance.create({
       data: {
@@ -34,6 +44,8 @@ export async function POST(req: Request) {
         type: "MASUK",
         datetime,
         notes: notes || "Absensi manual admin",
+        lateMinutes: 0,
+        halfDay: false,
       },
     });
 

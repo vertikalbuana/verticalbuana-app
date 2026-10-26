@@ -34,13 +34,18 @@ export default async function ProjectDetailPage({ params }: Props) {
   if (!project) notFound();
   if (role === "LEADER" && project.leaderId !== currentUserId) notFound();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
 
   const todayAttendances = await prisma.attendance.findMany({
     where: {
       projectId: id,
-      datetime: { gte: today },
+      datetime: {
+        gte: todayStart,
+        lt: todayEnd,
+      },
     },
   });
 
@@ -57,7 +62,8 @@ export default async function ProjectDetailPage({ params }: Props) {
         FROM "LeaderAttendance"
         WHERE "projectId" = ${id}
           AND "userId" = ${currentUserId}
-          AND "datetime" >= ${today}
+          AND "datetime" >= ${todayStart}
+          AND "datetime" < ${todayEnd}
         LIMIT 1
       `
     : [];

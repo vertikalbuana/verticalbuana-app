@@ -36,7 +36,11 @@ export default async function WorkersPage({
         },
       },
       _count: {
-        select: { attendances: true },
+        select: {
+          attendances: {
+            where: { type: "MASUK" },
+          },
+        },
       },
     },
   });
